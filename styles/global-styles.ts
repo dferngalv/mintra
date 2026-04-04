@@ -40,6 +40,10 @@ export const globalStyles = StyleSheet.create({
         fontFamily: 'Roboto',
         fontWeight: 400
     },
+    imagenIcono : {
+        width: 60,
+        height: 60,
+    },
     imagenesProducto : {
         width: 150,
         height: 150,
@@ -105,10 +109,4 @@ export const globalStyles = StyleSheet.create({
         alignItems: 'center',
         padding: 16,
     },
-    settingsoption: {
-        backgroundColor: Colors.primaryColor,
-        borderRadius: 16,
-        padding: 20,
-        marginVertical: 10,
-    }
 });
