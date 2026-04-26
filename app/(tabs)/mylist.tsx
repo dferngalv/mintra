@@ -1,13 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
 import Header from "../../components/Header";
 
-export default function Home() {
+export default function MyList() {
   return (
     <View style={styles.container}>
-      <Header showUserMenu={true} />
       <View style={styles.content}>
-        <Text style={styles.welcomeText}>Welcome to Mintra</Text>
-        <Text style={styles.subtitle}>Explore amazing content</Text>
+        <Text style={styles.text}>My List Screen</Text>
       </View>
     </View>
   );
@@ -23,14 +21,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: "700",
+  text: {
+    fontSize: 18,
     color: "#000",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
   },
 });

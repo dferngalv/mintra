@@ -1,12 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
 import Header from "../../components/Header";
 
-export default function MyList() {
+export default function Popular() {
   return (
     <View style={styles.container}>
-      <Header showUserMenu={true} />
       <View style={styles.content}>
-        <Text style={styles.text}>My List Screen</Text>
+        <Text style={styles.text}>Popular Screen</Text>
       </View>
     </View>
   );

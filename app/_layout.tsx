@@ -1,23 +1,22 @@
+import Header from "@/components/Header";
 import { Stack } from "expo-router";
 
 export default function RootLayout() {
   return (
     <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
+      screenOptions={{ headerShown: true, header: () => <Header /> }}
     >
-      <Stack.Screen name="(app)" />
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="auth/login"
         options={{
-          animationEnabled: true,
+          animation: "slide_from_right", headerShown: false
         }}
       />
       <Stack.Screen
         name="auth/register"
         options={{
-          animationEnabled: true,
+          animation: "slide_from_right", headerShown: false
         }}
       />
     </Stack>

@@ -14,7 +14,6 @@ export default function Settings() {
 
   return (
     <View style={styles.container}>
-      <Header showUserMenu={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Settings Title */}
@@ -53,7 +52,7 @@ export default function Settings() {
             <View style={styles.menuItemContent}>
               <View style={styles.iconBoxSmall}>
                 <FontAwesome
-                  name="logout"
+                  name="sign-out"
                   size={20}
                   color="#000"
                 />

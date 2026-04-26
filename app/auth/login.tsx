@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 import Header from "../../components/Header";
-import TabBar from "../../components/TabBar";
 import { commonStyles } from "../../components/styles/commonStyles";
 
 export default function Login() {
@@ -26,7 +25,6 @@ export default function Login() {
 
   return (
     <View style={commonStyles.container}>
-      <Header showUserMenu={true} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={commonStyles.containerInner}
@@ -116,7 +114,6 @@ export default function Login() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <TabBar />
     </View>
   );
 }

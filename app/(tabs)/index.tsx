@@ -1,12 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 import Header from "../../components/Header";
 
-export default function Popular() {
+export default function Home() {
   return (
     <View style={styles.container}>
-      <Header showUserMenu={true} />
       <View style={styles.content}>
-        <Text style={styles.text}>Popular Screen</Text>
+        <Text style={styles.welcomeText}>Welcome to Mintra</Text>
+        <Text style={styles.subtitle}>Explore amazing content</Text>
       </View>
     </View>
   );
@@ -22,8 +22,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  text: {
-    fontSize: 18,
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: "700",
     color: "#000",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
   },
 });

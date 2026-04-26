@@ -12,7 +12,6 @@ import {
     View,
 } from "react-native";
 import Header from "../../components/Header";
-import TabBar from "../../components/TabBar";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -25,7 +24,6 @@ export default function Register() {
 
   return (
     <View style={styles.container}>
-      <Header showUserMenu={true} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.containerInner}
@@ -110,7 +108,6 @@ export default function Register() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <TabBar />
     </View>
   );
 }
@@ -119,6 +116,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    paddingTop: 20
   },
   containerInner: {
     flex: 1,
