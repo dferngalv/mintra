@@ -2,6 +2,7 @@
   "expo": {
     "name": "PruebaInterfacesMintra",
     "slug": "PruebaInterfacesMintra",
+    "owner": "mintra",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.mintra.PruebaInterfacesMintra"
     },
     "web": {
       "output": "static",
@@ -43,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca0b2c55-9d8e-49d9-9881-a56ad60a5531"
+      }
     }
   }
 }
