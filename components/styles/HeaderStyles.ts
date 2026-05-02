@@ -25,6 +25,10 @@ export const headerStyles = StyleSheet.create({
     width: 48,
     height: 48,
   },
+  iconImage: {
+    width: 28,
+    height: 28,
+  },
   brandName: {
     fontSize: 18,
     fontWeight: "600",

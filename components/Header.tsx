@@ -1,8 +1,9 @@
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Image, Modal, Text, TouchableOpacity, View } from "react-native";
 import { headerStyles } from "./styles/HeaderStyles";
+import { useContextUser } from "@/contexts/ThemeProvider";
 
 interface HeaderProps {
   showUserMenu?: boolean;
@@ -11,6 +12,8 @@ interface HeaderProps {
 export default function Header({ showUserMenu = true }: HeaderProps) {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const router = useRouter();
+
+  const { userData, setUserData } = useContextUser();
 
   const navigateToHome = () => {
     router.push("/");
@@ -27,7 +30,9 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
   };
 
   const toggleMenu = () => {
-    setIsMenuVisible(!isMenuVisible);
+    if(!userData){
+      setIsMenuVisible(!isMenuVisible);
+    }
   };
 
   const closeMenu = () => {
@@ -53,15 +58,21 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
             <FontAwesome name="language" size={24} color="#000" />
           </TouchableOpacity>
 
-          {showUserMenu && (
+          {(userData && (userData[2] !== "null")) ? (
+            <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
+              <Image source={{ uri: userData[2] }} style={styles.iconImage} resizeMode="contain" />
+            </TouchableOpacity>
+          ) :
+          (
             <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
               <Ionicons name="person-circle" size={28} color="#000" />
             </TouchableOpacity>
-          )}
+          )
+        }
         </View>
       </View>
 
-      {showUserMenu && (
+      {!userData && (
         <Modal visible={isMenuVisible} transparent animationType="fade" onRequestClose={closeMenu}>
           <TouchableOpacity style={styles.overlay} onPress={closeMenu}>
             <View style={styles.menuContainer}>

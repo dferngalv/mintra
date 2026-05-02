@@ -1,5 +1,5 @@
 ﻿import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -10,17 +10,184 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Header from "../../components/Header";
 import { commonStyles } from "../../components/styles/commonStyles";
+import * as SecureStore from 'expo-secure-store';
+import { useContextUser } from "@/contexts/ThemeProvider";
+import { router } from "expo-router";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+
+  const { userData, setUserData } = useContextUser();
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const [disable, setDisable] = useState(false);
+  const [errors, setErrors] = useState({
+    email: "",
+    password: ""
+  });
+
+  const API_URL = "http://192.168.1.45:8083";
+
+  useEffect(() => {
+      if(userData){
+        router.push("/");
+      }
+    }, [userData]);
+
+  const handleLogin = async () => {
+
+    if (disable) return;
+
+    setDisable(true);
+
+    try {
+      await processLogin();
+    } finally {
+      setDisable(false);
+    }
+  };
 
   // Función para procesar el login, por ahora solo loggea los datos para probar
-  const processLogin = () => {
-    console.log("Sign in with:", { email, password });
+  const processLogin = async () => {
+    setErrors({
+      email: "",
+      password: ""
+    });
+
+    try {
+
+      let exit = false;
+
+      let { email, password } = formData;
+
+      let newErrors = { email: "", password: "" };
+
+      if (email) {
+        email = email.toLowerCase().trim();
+        setFormData({ email: email, password: password });
+      }
+
+      console.log(formData);
+
+      if (email === "") {
+        newErrors.email = "No se ha insertado ningún carácter en el email";
+        exit = true;
+      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        newErrors.email = "El email insertado no es válido";
+        exit = true;
+      }
+
+      if (password === "") {
+        newErrors.password = "No se ha insertado ningún carácter en la contraseña";
+        exit = true;
+      } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]).{8,}$/.test(password) || /\s/.test(password)) {
+        newErrors.password = "La contraseña insertada no es válida; debe contener al menos 8 caracteres, una mayúscula, una minúscula y un carácter especial. No debe tener espacios.";
+        exit = true;
+      }
+
+      setErrors(newErrors);
+      console.log(newErrors);
+
+      if(!exit){
+        await prelogin();
+      }
+
+    } catch (e) {
+      setErrors({ email: "Error de registro", password: "" });
+    } finally {
+
+    }
+  };
+
+  const prelogin = async () => {
+
+    login();
+  }
+
+  const login = () => {
+
+
+    fetch(`${API_URL}/user/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: formData.email.toLowerCase().trim(),
+        upassword: formData.password,
+      })
+    })
+      .then(async (response) => {
+
+        const text = await response.text();
+
+        console.log(text);
+
+        let dataResult = null;
+
+        try {
+          dataResult = text ? JSON.parse(text) : null;
+        } catch (e) {
+          // No era JSON
+          dataResult = null;
+        }
+
+        if (!response.ok) {
+
+          const message =
+            text ||
+            `Error al iniciar sesión ${response.status}`;
+
+          throw new Error(message);
+        }
+
+        return dataResult;
+      })
+      .then((data) => {
+        console.log("Login correcto. userId:", data.userId);
+        console.log("uname:", data.uname);
+        console.log("picture:", data.picture);
+
+        if (data.picture !== null) {
+          guardarDatos(String(data.userId), data.uname, String(data.picture));
+        }
+        else {
+          guardarDatos(String(data.userId), data.uname, "null");
+        }
+      })
+      .catch((error) => {
+
+        let newError = { email: "Error al registrarse, quizás el usuario no existe.", password: "" };
+        setErrors(newError);
+        console.error(error);
+      }
+      );
+  };
+
+  const guardarDatos = async (userId: (string), uname: (string), picture: (string)) => {
+
+    try {
+
+      if (Platform.OS === "web") {
+
+        localStorage.setItem("user_id", userId);
+        localStorage.setItem("uname", uname);
+        localStorage.setItem("picture", picture);
+      }
+      else {
+        await SecureStore.setItemAsync('user_id', userId);
+        await SecureStore.setItemAsync('uname', uname);
+        await SecureStore.setItemAsync('picture', picture);
+      }
+      setUserData([userId, uname, picture]);
+      router.push("/");
+    } catch (error) {
+      console.error('Error al guardar los datos', error);
+    }
   };
 
   return (
@@ -56,11 +223,16 @@ export default function Login() {
               style={commonStyles.input}
               placeholder="Enter your email"
               placeholderTextColor="#ccc"
-              value={email}
-              onChangeText={setEmail}
+              value={formData.email}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            {(errors.email != "") && (
+              <Text style={commonStyles.required}>
+                {errors.email}
+              </Text>
+            )}
           </View>
 
           {/* Password Input */}
@@ -73,8 +245,8 @@ export default function Login() {
                 style={commonStyles.passwordInput}
                 placeholder="Enter your password"
                 placeholderTextColor="#ccc"
-                value={password}
-                onChangeText={setPassword}
+                value={formData.password}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -89,6 +261,11 @@ export default function Login() {
                 />
               </TouchableOpacity>
             </View>
+            {(errors.password != "") && (
+              <Text style={commonStyles.required}>
+                {errors.password}
+              </Text>
+            )}
           </View>
 
           {/* Forgot Password Link */}
@@ -98,9 +275,10 @@ export default function Login() {
 
           {/* Sign In Button */}
           <TouchableOpacity
-            style={commonStyles.button}
+            style={[commonStyles.button, disable ? { backgroundColor: "#c9c9c9" } : {backgroundColor: "#000"}]}
             onPress={processLogin}
             activeOpacity={0.7}
+            disabled={disable}
           >
             <Text style={commonStyles.buttonText}>Sign in with password</Text>
           </TouchableOpacity>

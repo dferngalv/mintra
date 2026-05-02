@@ -5,7 +5,6 @@ export const commonStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 20
   },
   containerInner: {
     flex: 1,
@@ -100,7 +99,6 @@ export const commonStyles = StyleSheet.create({
 
   // Botones
   button: {
-    backgroundColor: "#000",
     borderRadius: 6,
     paddingVertical: 14,
     paddingHorizontal: 24,

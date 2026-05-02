@@ -1,25 +1,244 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Header from "../../components/Header";
+import * as SecureStore from 'expo-secure-store';
+import { useContextUser } from "@/contexts/ThemeProvider";
+import { router } from "expo-router";
 
 export default function Register() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignUp = () => {
-    console.log("Sign up with:", { email, password });
+  const { userData, setUserData } = useContextUser();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [disable, setDisable] = useState(false);
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    password: ""
+  });
+
+  const API_URL = "http://192.168.1.45:8083";
+
+  useEffect(() => {
+    if (userData) {
+      router.push("/");
+    }
+  }, [userData]);
+
+  const handleSignUp = async () => {
+
+    if (disable) return;
+
+    setDisable(true);
+
+    try {
+      await signUp();
+    } finally {
+      setDisable(false);
+    }
+  };
+
+  const signUp = async () => {
+
+    setErrors({
+      name: "",
+      email: "",
+      password: ""
+    });
+
+    try {
+
+      let exit = false;
+
+      let { name, email, password } = formData;
+
+      let newErrors = { name: "", email: "", password: "" };
+
+      if (name) {
+        name = name.trim();
+      }
+
+      if (email) {
+        email = email.toLowerCase().trim();
+      }
+
+      setFormData({ name: name, email: email, password: password });
+
+      console.log(formData);
+
+      if (name === "") {
+        newErrors.name = "No se ha insertado ningún carácter en el nombre";
+        exit = true;
+      }
+
+      if (email === "") {
+        newErrors.email = "No se ha insertado ningún carácter en el email";
+        exit = true;
+      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        newErrors.email = "El email insertado no es válido";
+        exit = true;
+      }
+
+      if (password === "") {
+        newErrors.password = "No se ha insertado ningún carácter en la contraseña";
+        exit = true;
+      } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]).{8,}$/.test(password) || /\s/.test(password)) {
+        newErrors.password = "La contraseña insertada no es válida; debe contener al menos 8 caracteres, una mayúscula, una minúscula y un carácter especial. No debe tener espacios.";
+        exit = true;
+      }
+
+      setErrors(newErrors);
+      console.log(newErrors);
+
+      if (!exit) {
+        await preregister();
+      }
+
+    } catch (e) {
+      setErrors({ name: "", email: "Error de registro", password: "" });
+    } finally {
+
+    }
+  }
+
+  const preregister = async () => {
+
+    register();
+  }
+
+  const register = () => {
+
+    fetch(`${API_URL}/user/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        uname: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(),
+        upassword: formData.password,
+      }),
+    })
+      .then(async (response) => {
+
+        const text = await response.text();
+
+        console.log(text);
+
+        let dataResult = null;
+
+        try {
+          dataResult = text ? JSON.parse(text) : null;
+        } catch (e) {
+          // No era JSON
+          dataResult = null;
+        }
+
+        if (!response.ok) {
+
+          const message =
+            text ||
+            `Error de registro ${response.status}`;
+
+          throw new Error(message);
+        }
+
+        return dataResult;
+      })
+      .then(() => {
+        return fetch(`${API_URL}/user/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email.toLowerCase().trim(),
+            upassword: formData.password,
+          })
+        });
+      })
+      .then(async (response) => {
+
+        const text = await response.text();
+
+        console.log(text);
+
+        let dataResult = null;
+
+        try {
+          dataResult = text ? JSON.parse(text) : null;
+        } catch (e) {
+          // No era JSON
+          dataResult = null;
+        }
+
+        if (!response.ok) {
+
+          const message =
+            text ||
+            `Error al iniciar sesión ${response.status}`;
+
+          throw new Error(message);
+        }
+
+        return dataResult;
+      })
+      .then((data) => {
+        console.log("Login correcto. userId:", data.userId);
+        console.log("uname:", data.uname);
+        console.log("picture:", data.picture);
+
+        if (data.picture !== null) {
+          guardarDatos(String(data.userId), data.uname, String(data.picture));
+        }
+        else {
+          guardarDatos(String(data.userId), data.uname, "null");
+        }
+      })
+      .catch((error) => {
+
+        let newError = { name: "Error al registrarse, quizás ya haya una cuenta con el correo insertado.", email: "", password: "" };
+        setErrors(newError);
+        console.error(error);
+      }
+      );
+  };
+
+  const guardarDatos = async (userId: (string), uname: (string), picture: (string)) => {
+
+    try {
+
+      if (Platform.OS === "web") {
+
+        localStorage.setItem("user_id", userId);
+        localStorage.setItem("uname", uname);
+        localStorage.setItem("picture", picture);
+      }
+      else {
+        await SecureStore.setItemAsync('user_id', userId);
+        await SecureStore.setItemAsync('uname', uname);
+        await SecureStore.setItemAsync('picture', picture);
+      }
+      setUserData([userId, uname, picture]);
+      router.push("/");
+    } catch (error) {
+      console.error('Error al guardar los datos', error);
+    }
   };
 
   return (
@@ -46,6 +265,27 @@ export default function Register() {
           {/* Registration Title */}
           <Text style={styles.registrationTitle}>Registration</Text>
 
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              Username <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your username"
+              placeholderTextColor="#ccc"
+              value={formData.name}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+              autoCapitalize="none"
+            />
+            {(errors.name != "") && (
+              <Text style={styles.required}>
+                {errors.name}
+              </Text>
+            )}
+          </View>
+
+
+
           {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
@@ -55,11 +295,16 @@ export default function Register() {
               style={styles.input}
               placeholder="Enter your email"
               placeholderTextColor="#ccc"
-              value={email}
-              onChangeText={setEmail}
+              value={formData.email}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            {(errors.email != "") && (
+              <Text style={styles.required}>
+                {errors.email}
+              </Text>
+            )}
           </View>
 
           {/* Password Input */}
@@ -72,8 +317,8 @@ export default function Register() {
                 style={styles.passwordInput}
                 placeholder="Enter your password"
                 placeholderTextColor="#ccc"
-                value={password}
-                onChangeText={setPassword}
+                value={formData.password}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -88,13 +333,22 @@ export default function Register() {
                 />
               </TouchableOpacity>
             </View>
+            {(errors.password != "") && (
+              <Text style={styles.required}>
+                {errors.password}
+              </Text>
+            )}
           </View>
 
           {/* Sign Up Button */}
           <TouchableOpacity
-            style={styles.signUpButton}
+            style={[
+              styles.signUpButton,
+              disable ? { backgroundColor: "#c9c9c9" } : { backgroundColor: "#000" }
+            ]}
             onPress={handleSignUp}
             activeOpacity={0.7}
+            disabled={disable}
           >
             <Text style={styles.signUpButtonText}>Sign up</Text>
           </TouchableOpacity>
@@ -116,7 +370,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 20
   },
   containerInner: {
     flex: 1,
@@ -190,7 +443,6 @@ const styles = StyleSheet.create({
     right: 12,
   },
   signUpButton: {
-    backgroundColor: "#000",
     borderRadius: 6,
     paddingVertical: 14,
     paddingHorizontal: 24,

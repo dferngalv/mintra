@@ -1,16 +1,44 @@
 import { Ionicons, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
 import { useState } from "react";
 import {
+  Platform,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-import Header from "../../components/Header";
+import * as SecureStore from 'expo-secure-store';
+import { router } from "expo-router";
+import { useContextUser } from "@/contexts/ThemeProvider";
 
 export default function Settings() {
+
+  const { userData, setUserData } = useContextUser();
+
   const [themeMode, setThemeMode] = useState("light");
+
+  const logout = async () => {
+  
+      try {
+  
+        if (Platform.OS === "web") {
+  
+          localStorage.removeItem("user_id");
+          localStorage.removeItem("uname");
+          localStorage.removeItem("picture");
+        }
+        else {
+          await SecureStore.deleteItemAsync('user_id');
+          await SecureStore.deleteItemAsync('uname');
+          await SecureStore.deleteItemAsync('picture');
+        }
+        setUserData(null);
+        router.push("/");
+      } catch (error) {
+        console.error('Error al borrar los datos', error);
+      }
+    };
 
   return (
     <View style={styles.container}>
@@ -37,7 +65,7 @@ export default function Settings() {
           </TouchableOpacity>
 
           {/* Profile */}
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={[styles.menuItem, !userData && styles.lastMenuItem]}>
             <View style={styles.menuItemContent}>
               <View style={styles.iconBoxSmall}>
                 <Ionicons name="person" size={20} color="#000" />
@@ -48,7 +76,9 @@ export default function Settings() {
           </TouchableOpacity>
 
           {/* Logout */}
-          <TouchableOpacity style={[styles.menuItem, styles.lastMenuItem]}>
+
+          {userData &&
+          <TouchableOpacity style={[styles.menuItem, styles.lastMenuItem]} onPress={logout}>
             <View style={styles.menuItemContent}>
               <View style={styles.iconBoxSmall}>
                 <FontAwesome
@@ -61,6 +91,7 @@ export default function Settings() {
             </View>
             <Ionicons name="chevron-forward" size={24} color="#999" />
           </TouchableOpacity>
+          }
         </View>
 
         {/* Theme Mode Section */}
