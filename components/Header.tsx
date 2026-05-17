@@ -1,9 +1,10 @@
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Image, Modal, Text, TouchableOpacity, View } from "react-native";
+import { Image, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
 import { headerStyles } from "./styles/HeaderStyles";
 import { useContextUser } from "@/contexts/ThemeProvider";
+import * as SecureStore from 'expo-secure-store';
 
 interface HeaderProps {
   showUserMenu?: boolean;
@@ -11,9 +12,31 @@ interface HeaderProps {
 
 export default function Header({ showUserMenu = true }: HeaderProps) {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const router = useRouter();
+  const [image, setImage] = useState("null");
 
-  const { userData, setUserData } = useContextUser();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const { userData, setUserData, apiDir } = useContextUser();
+
+  {/*
+  useEffect(() => {
+
+    if (userData === undefined) return;
+
+    if (!userData) {
+      router.replace("/");
+    }
+    else {
+
+      if(apiDir){
+
+        llamadaApi();
+      }
+    }
+  }, [userData, apiDir]);
+
+  */}
 
   const navigateToHome = () => {
     router.push("/");
@@ -30,13 +53,82 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
   };
 
   const toggleMenu = () => {
-    if(!userData){
+    if (!userData) {
       setIsMenuVisible(!isMenuVisible);
     }
   };
 
   const closeMenu = () => {
     setIsMenuVisible(false);
+  };
+
+  const llamadaApi = () => {
+    if (userData) {
+      fetch(`${apiDir}/user/${userData}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(async (response) => {
+
+          const text = await response.text();
+
+          console.log(text);
+
+          let dataResult = null;
+
+          try {
+            dataResult = text ? JSON.parse(text) : null;
+          } catch (e) {
+
+            dataResult = null;
+          }
+
+          if (!response.ok) {
+
+            const message =
+              text ||
+              `Error al iniciar sesión ${response.status}`;
+
+            throw new Error(message);
+          }
+
+          return dataResult;
+        })
+        .then((data) => {
+          if (data === null) {
+            logout();
+          }
+          else {
+            setImage((data.picture !== null) ? (apiDir + data.picture) : "null");
+          }
+        })
+        .catch((error) => {
+
+          console.error(error);
+          router.replace("/");
+        }
+        );
+    }
+  }
+
+  const logout = async () => {
+
+    try {
+
+      if (Platform.OS === "web") {
+
+        localStorage.removeItem("user_id");
+      }
+      else {
+        await SecureStore.deleteItemAsync('user_id');
+      }
+      setUserData(null);
+      router.push("/");
+    } catch (error) {
+      console.error('Error al borrar los datos', error);
+    }
   };
 
   return (
@@ -58,17 +150,17 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
             <FontAwesome name="language" size={24} color="#000" />
           </TouchableOpacity>
 
-          {(userData && (userData[2] !== "null")) ? (
+          {(image !== "null") ? (
             <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
-              <Image source={{ uri: userData[2] }} style={styles.iconImage} resizeMode="contain" />
+              <Image source={{ uri: image }} style={styles.iconImage} resizeMode="contain" />
             </TouchableOpacity>
           ) :
-          (
-            <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
-              <Ionicons name="person-circle" size={28} color="#000" />
-            </TouchableOpacity>
-          )
-        }
+            (
+              <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
+                <Ionicons name="person-circle" size={28} color="#000" />
+              </TouchableOpacity>
+            )
+          }
         </View>
       </View>
 

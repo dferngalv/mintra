@@ -1,8 +1,11 @@
 import Header from "@/components/Header";
-import { ThemeProvider } from "@/contexts/ThemeProvider";
+import { ThemeProvider, useContextUser } from "@/contexts/ThemeProvider";
 import { Stack } from "expo-router";
+import { useState } from "react";
+import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function RootLayout() {
+
   return (
     <ThemeProvider>
     <Stack
@@ -17,6 +20,24 @@ export default function RootLayout() {
       />
       <Stack.Screen
         name="auth/register"
+        options={{
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="auth/profile"
+        options={{
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="screens/createseries"
+        options={{
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="screens/createchapters"
         options={{
           animation: "slide_from_right",
         }}

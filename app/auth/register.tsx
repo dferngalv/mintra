@@ -13,11 +13,14 @@ import {
 } from "react-native";
 import * as SecureStore from 'expo-secure-store';
 import { useContextUser } from "@/contexts/ThemeProvider";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
+import { commonStyles } from "@/components/styles/commonStyles";
 
 export default function Register() {
 
   const { userData, setUserData } = useContextUser();
+
+  const pathname = usePathname();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -35,10 +38,13 @@ export default function Register() {
   const API_URL = "http://192.168.1.45:8083";
 
   useEffect(() => {
+
+    if (userData === undefined) return;
+
     if (userData) {
-      router.push("/");
+      router.replace("/");
     }
-  }, [userData]);
+  }, [userData, pathname]);
 
   const handleSignUp = async () => {
 
@@ -161,6 +167,7 @@ export default function Register() {
         return dataResult;
       })
       .then(() => {
+        console.log("llega");
         return fetch(`${API_URL}/user/login`, {
           method: 'POST',
           headers: {
@@ -199,15 +206,12 @@ export default function Register() {
         return dataResult;
       })
       .then((data) => {
-        console.log("Login correcto. userId:", data.userId);
-        console.log("uname:", data.uname);
-        console.log("picture:", data.picture);
 
-        if (data.picture !== null) {
-          guardarDatos(String(data.userId), data.uname, String(data.picture));
-        }
-        else {
-          guardarDatos(String(data.userId), data.uname, "null");
+        if (data !== null) {
+
+          console.log("Login correcto. userId:", data.userId);
+
+          guardarDatos(String(data.userId));
         }
       })
       .catch((error) => {
@@ -219,23 +223,18 @@ export default function Register() {
       );
   };
 
-  const guardarDatos = async (userId: (string), uname: (string), picture: (string)) => {
+  const guardarDatos = async (userId: (string)) => {
 
     try {
 
       if (Platform.OS === "web") {
 
         localStorage.setItem("user_id", userId);
-        localStorage.setItem("uname", uname);
-        localStorage.setItem("picture", picture);
       }
       else {
         await SecureStore.setItemAsync('user_id', userId);
-        await SecureStore.setItemAsync('uname', uname);
-        await SecureStore.setItemAsync('picture', picture);
       }
-      setUserData([userId, uname, picture]);
-      router.push("/");
+      setUserData(userId);
     } catch (error) {
       console.error('Error al guardar los datos', error);
     }
@@ -360,6 +359,7 @@ export default function Register() {
               <Text style={styles.signInLink}>Sign in</Text>
             </TouchableOpacity>
           </View>
+          <View style={commonStyles.footer}/>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

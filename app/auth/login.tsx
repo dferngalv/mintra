@@ -13,11 +13,13 @@ import {
 import { commonStyles } from "../../components/styles/commonStyles";
 import * as SecureStore from 'expo-secure-store';
 import { useContextUser } from "@/contexts/ThemeProvider";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 
 export default function Login() {
 
   const { userData, setUserData } = useContextUser();
+
+  const pathname = usePathname();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -33,10 +35,13 @@ export default function Login() {
   const API_URL = "http://192.168.1.45:8083";
 
   useEffect(() => {
-      if(userData){
-        router.push("/");
-      }
-    }, [userData]);
+
+    if (userData === undefined) return;
+
+    if (userData) {
+      router.replace("/");
+    }
+  }, [userData, pathname]);
 
   const handleLogin = async () => {
 
@@ -92,7 +97,7 @@ export default function Login() {
       setErrors(newErrors);
       console.log(newErrors);
 
-      if(!exit){
+      if (!exit) {
         await prelogin();
       }
 
@@ -148,15 +153,11 @@ export default function Login() {
         return dataResult;
       })
       .then((data) => {
-        console.log("Login correcto. userId:", data.userId);
-        console.log("uname:", data.uname);
-        console.log("picture:", data.picture);
 
-        if (data.picture !== null) {
-          guardarDatos(String(data.userId), data.uname, String(data.picture));
-        }
-        else {
-          guardarDatos(String(data.userId), data.uname, "null");
+        if (data !== null) {
+          console.log("Login correcto. userId:", data.userId);
+
+          guardarDatos(String(data.userId));
         }
       })
       .catch((error) => {
@@ -168,23 +169,18 @@ export default function Login() {
       );
   };
 
-  const guardarDatos = async (userId: (string), uname: (string), picture: (string)) => {
+  const guardarDatos = async (userId: (string)) => {
 
     try {
 
       if (Platform.OS === "web") {
 
         localStorage.setItem("user_id", userId);
-        localStorage.setItem("uname", uname);
-        localStorage.setItem("picture", picture);
       }
       else {
         await SecureStore.setItemAsync('user_id', userId);
-        await SecureStore.setItemAsync('uname', uname);
-        await SecureStore.setItemAsync('picture', picture);
       }
-      setUserData([userId, uname, picture]);
-      router.push("/");
+      setUserData(userId);
     } catch (error) {
       console.error('Error al guardar los datos', error);
     }
@@ -275,8 +271,8 @@ export default function Login() {
 
           {/* Sign In Button */}
           <TouchableOpacity
-            style={[commonStyles.button, disable ? { backgroundColor: "#c9c9c9" } : {backgroundColor: "#000"}]}
-            onPress={processLogin}
+            style={[commonStyles.button, disable ? { backgroundColor: "#c9c9c9" } : { backgroundColor: "#000" }]}
+            onPress={handleLogin}
             activeOpacity={0.7}
             disabled={disable}
           >
@@ -290,6 +286,7 @@ export default function Login() {
               <Text style={commonStyles.textLinkLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
+          <View style={commonStyles.footer}/>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

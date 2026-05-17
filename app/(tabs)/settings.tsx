@@ -2,11 +2,11 @@ import { Ionicons, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icon
 import { useState } from "react";
 import {
   Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import * as SecureStore from 'expo-secure-store';
 import { router } from "expo-router";
@@ -19,38 +19,34 @@ export default function Settings() {
   const [themeMode, setThemeMode] = useState("light");
 
   const logout = async () => {
-  
-      try {
-  
-        if (Platform.OS === "web") {
-  
-          localStorage.removeItem("user_id");
-          localStorage.removeItem("uname");
-          localStorage.removeItem("picture");
-        }
-        else {
-          await SecureStore.deleteItemAsync('user_id');
-          await SecureStore.deleteItemAsync('uname');
-          await SecureStore.deleteItemAsync('picture');
-        }
-        setUserData(null);
-        router.push("/");
-      } catch (error) {
-        console.error('Error al borrar los datos', error);
+
+    try {
+
+      if (Platform.OS === "web") {
+
+        localStorage.removeItem("user_id");
       }
-    };
+      else {
+        await SecureStore.deleteItemAsync('user_id');
+      }
+      setUserData(null);
+      router.push("/");
+    } catch (error) {
+      console.error('Error al borrar los datos', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Settings Title */}
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>Settings and profile options</Text>
 
         {/* Menu Items Section */}
         <View style={styles.menuSection}>
           {/* Languages */}
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={[styles.menuItem, !userData && styles.lastMenuItem]}>
             <View style={styles.menuItemContent}>
               <View style={styles.iconBoxSmall}>
                 <FontAwesome
@@ -65,32 +61,48 @@ export default function Settings() {
           </TouchableOpacity>
 
           {/* Profile */}
-          <TouchableOpacity style={[styles.menuItem, !userData && styles.lastMenuItem]}>
-            <View style={styles.menuItemContent}>
-              <View style={styles.iconBoxSmall}>
-                <Ionicons name="person" size={20} color="#000" />
+
+          {userData &&
+          <>
+            <TouchableOpacity style={styles.menuItem} onPress={() => {router.push("/auth/profile")}}>
+              <View style={styles.menuItemContent}>
+                <View style={styles.iconBoxSmall}>
+                  <Ionicons name="person" size={20} color="#000" />
+                </View>
+                <Text style={styles.menuItemText}>Profile</Text>
               </View>
-              <Text style={styles.menuItemText}>Profile</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
-          </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={24} color="#999" />
+            </TouchableOpacity>
+
+
+            <TouchableOpacity style={styles.menuItem} onPress={() => {router.push("/screens/createseries")}}>
+              <View style={styles.menuItemContent}>
+                <View style={styles.iconBoxSmall}>
+                  <Ionicons name="book" size={20} color="#000" />
+                </View>
+                <Text style={styles.menuItemText}>Create series and chapters</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#999" />
+            </TouchableOpacity>
+          
 
           {/* Logout */}
 
-          {userData &&
-          <TouchableOpacity style={[styles.menuItem, styles.lastMenuItem]} onPress={logout}>
-            <View style={styles.menuItemContent}>
-              <View style={styles.iconBoxSmall}>
-                <FontAwesome
-                  name="sign-out"
-                  size={20}
-                  color="#000"
-                />
+
+            <TouchableOpacity style={[styles.menuItem, styles.lastMenuItem]} onPress={logout}>
+              <View style={styles.menuItemContent}>
+                <View style={styles.iconBoxSmall}>
+                  <FontAwesome
+                    name="sign-out"
+                    size={20}
+                    color="#000"
+                  />
+                </View>
+                <Text style={styles.menuItemText}>Logout</Text>
               </View>
-              <Text style={styles.menuItemText}>Logout</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
-          </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={24} color="#999" />
+            </TouchableOpacity>
+            </>
           }
         </View>
 

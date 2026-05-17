@@ -18,11 +18,13 @@ export const commonStyles = StyleSheet.create({
   // Iconos y logos
   iconContainer: {
     alignItems: "center",
+    alignSelf: "center",
     marginBottom: 40,
   },
   iconBox: {
     justifyContent: "center",
     alignItems: "center",
+    alignSelf: "center"
   },
   iconImage: {
     width: 100,
@@ -36,6 +38,11 @@ export const commonStyles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 40,
     color: "#000",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center"
   },
 
   // Grupos de input
@@ -81,6 +88,19 @@ export const commonStyles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingRight: 44,
   },
+   passwordInputLarge: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: "#000",
+    borderRadius: 4,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 100,
+    fontSize: 16,
+    color: "#000",
+    backgroundColor: "#fff",
+    paddingRight: 44,
+  },
   eyeIcon: {
     position: "absolute",
     right: 12,
@@ -112,6 +132,11 @@ export const commonStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  formButton: {
+    borderWidth: 1,
+    padding: 5,
+    backgroundColor: "#ededed"
+  },
 
   // Contenedores de texto con enlaces
   textLinkContainer: {
@@ -128,5 +153,10 @@ export const commonStyles = StyleSheet.create({
     fontWeight: "600",
     color: "#007AFF",
     textDecorationLine: "underline",
+  },
+
+  //Footers
+  footer: {
+    marginBottom: 30,
   },
 });

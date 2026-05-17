@@ -1,24 +1,30 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { Modal, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as SecureStore from 'expo-secure-store';
 import { router } from "expo-router";
+import { commonStyles } from "@/components/styles/commonStyles";
 //import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserContextType {
   userData: any[] | null | undefined; // [token, id, nombre]
-  setUserData: (val: any[] | null | undefined) => void;
+  setUserData: (val: any | null | undefined) => void;
+  apiDir: string | null;
+  setApiDir: (val: string | null) => void;
 
 }
 
 const ThemeContext = createContext<UserContextType>({
-  userData: [],
+  userData: undefined,
   setUserData: () => { },
+  apiDir: null,
+  setApiDir: () => { }
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [userData, setUserData] = useState<any[] | null | undefined>(undefined);
+  const [userData, setUserData] = useState<any | null | undefined>(undefined);
+  const [apiDir, setApiDir] = useState<string | null>(null);
 
-  const API_URL = "http://192.168.1.45:8083";
+  const [text, setText] = useState("");
 
   useEffect(() => {
     cargarDatos();
@@ -79,18 +85,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const cargarDatos = async () => {
     try {
 
-      let datos: (string | null)[] = [null, null, null];
+      let dato: (string | null) = null;
 
       if (Platform.OS === "web") {
-        datos = [localStorage.getItem("user_id"), localStorage.getItem("uname"), localStorage.getItem("picture")];
+        dato = localStorage.getItem("user_id");
       }
       else {
-        datos = [await SecureStore.getItemAsync('user_id'), await SecureStore.getItemAsync('uname'), await SecureStore.getItemAsync('picture')];
+        dato = await SecureStore.getItemAsync('user_id');
       }
 
-      if (datos[0] !== null) {
-        setUserData(datos);
-        console.log(datos);
+      if (dato !== null) {
+        setUserData(dato);
+        console.log(dato);
       }
       else {
         setUserData(null);
@@ -109,13 +115,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (Platform.OS === "web") {
 
         localStorage.removeItem("user_id");
-        localStorage.removeItem("uname");
-        localStorage.removeItem("picture");
       }
       else {
         await SecureStore.deleteItemAsync('user_id');
-        await SecureStore.deleteItemAsync('uname');
-        await SecureStore.deleteItemAsync('picture');
       }
       setUserData(null);
       router.push("/");
@@ -125,8 +127,40 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ userData, setUserData }}>
+    <ThemeContext.Provider value={{ userData, setUserData, apiDir, setApiDir }}>
       {children}
+      <Modal transparent visible={apiDir == null} animationType="fade">
+      <View style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.5)"
+      }}>
+        <View style={{
+          backgroundColor: "white",
+          padding: 20,
+          width: 300,
+          borderRadius: 10
+        }}>
+          <Text>Insert the computer's local IP</Text>
+
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder=""
+            style={commonStyles.input}
+          />
+
+          <TouchableOpacity
+            onPress={() => {
+              setApiDir("http://" + text + ":8083");
+            }}
+          >
+            <Text style={[commonStyles.formButton, {textAlign : "center"}]}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
     </ThemeContext.Provider>
   );
 }
