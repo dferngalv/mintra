@@ -1,0 +1,247 @@
+{
+  "header": {
+    "signIn": "Iniciar Sesión",
+    "signUp": "Registrarse"
+  },
+  "tabs": {
+    "home": "Inicio",
+    "myList": "Mi Lista",
+    "popular": "Popular",
+    "settings": "Ajustes"
+  },
+  "home": {
+    "recent": "Reciente",
+    "recentlyCreated": "Recientemente creadas",
+    "newCreators": "Nuevos creadores",
+    "unableToLoad": "No se pudieron cargar las series recientes.",
+    "noRecentAvailable": "No hay series recientes disponibles.",
+    "noNewCreators": "No hay series de nuevos creadores disponibles.",
+    "showMore": "Ver más"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "languages": "Idiomas",
+    "adminPanel": "Panel de administración",
+    "creatorPanel": "Panel de creador",
+    "profile": "Perfil",
+    "logout": "Cerrar sesión",
+    "themeMode": "Modo de tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "darker": "Más oscuro"
+  },
+  "login": {
+    "title": "Iniciar Sesión",
+    "email": "Correo Electrónico",
+    "emailPlaceholder": "Introduce tu correo",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Introduce tu contraseña",
+    "forgotPassword": "¿Has olvidado tu contraseña?",
+    "signInBtn": "Iniciar sesión con contraseña",
+    "noAccount": "¿No tienes cuenta? ",
+    "signUp": "Regístrate",
+    "validation": {
+      "emptyEmail": "No se ha insertado ningún carácter en el email",
+      "invalidEmail": "El email insertado no es válido",
+      "emptyPassword": "No se ha insertado ningún carácter en la contraseña",
+      "invalidPassword": "La contraseña insertada no es válida; debe contener al menos 8 caracteres, una mayúscula, una minúscula y un carácter especial. No debe tener espacios.",
+      "generalError": "Error de registro",
+      "loginError": "No se pudo iniciar sesión correctamente",
+      "generalLoginError": "Error al iniciar sesión"
+    }
+  },
+  "register": {
+    "title": "Registro",
+    "username": "Nombre de usuario",
+    "usernamePlaceholder": "Introduce tu usuario",
+    "email": "Correo Electrónico",
+    "emailPlaceholder": "Introduce tu correo",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Introduce tu contraseña",
+    "signUpBtn": "Registrarse",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta? ",
+    "signIn": "Inicia sesión",
+    "validation": {
+      "emptyName": "No se ha insertado ningún carácter en el nombre",
+      "emptyEmail": "No se ha insertado ningún carácter en el email",
+      "invalidEmail": "El email insertado no es válido",
+      "emptyPassword": "No se ha insertado ningún carácter en la contraseña",
+      "invalidPassword": "La contraseña insertada no es válida; debe contener al menos 8 caracteres, una mayúscula, una minúscula y un carácter especial. No debe tener espacios.",
+      "generalError": "Error de registro",
+      "generalLoginError": "Error al iniciar sesión",
+      "loginError": "No se pudo iniciar sesión correctamente"
+    }
+  },
+  "profile": {
+    "title": "Ajustes de perfil",
+    "subtitle": "Gestiona la información multimedia y de cuenta de tu perfil",
+    "deleteImage": "Eliminar imagen",
+    "profilePicture": "Foto de perfil",
+    "accountInformation": "Información de la cuenta",
+    "username": "Nombre de usuario:",
+    "email": "Email:",
+    "bio": "Biografía:",
+    "accountCreated": "Cuenta creada:",
+    "role": "Rol:",
+    "saveChanges": "Guardar cambios",
+    "errors": {
+      "noFileSelected": "No se seleccionó ningún archivo",
+      "invalidFile": "Archivo inválido",
+      "imageFormatError": "Solo JPG/JPEG o PNG",
+      "imageUploadError": "Error al subir la imagen",
+      "imageSaveError": "Error al guardar la imagen.",
+      "loginError": "Error al iniciar sesión"
+    }
+  },
+  "mylist": {
+    "title": "Mi Lista",
+    "signInPrompt": "Inicia sesión para ver las obras que sigues.",
+    "errorLoading": "No se pudieron cargar tus obras seguidas.",
+    "emptyList": "No sigues ninguna obra todavía."
+  },
+  "popular": {
+    "title": "Pantalla de Popular"
+  },
+  "search": {
+    "title": "Buscar series",
+    "placeholder": "Buscar por título, artistas o descripción",
+    "emptyPrompt": "Busca por título, artistas o descripción.",
+    "errorLoading": "No se pudieron cargar los resultados.",
+    "noResults": "No se encontraron series."
+  },
+  "detail": {
+    "errorLoading": "No se pudo cargar la serie.",
+    "notFound": "Serie no encontrada.",
+    "unknownAuthor": "Autor desconocido",
+    "published": "Publicado",
+    "ongoing": "Ongoing",
+    "updated": "Actualizado",
+    "noDate": "Fecha no disponible",
+    "unfollow": "Dejar de seguir",
+    "follow": "Seguir",
+    "share": "Compartir",
+    "shareMessage": "{{title}} - {{artists}}\nDescubre más en la app.",
+    "description": "Descripción",
+    "noDescription": "Descripción no disponible.",
+    "chapters": "Capítulos",
+    "noChapters": "No se encontraron capítulos.",
+    "read": "Leer"
+  },
+  "reader": {
+    "notFound": "Capítulo no encontrado.",
+    "errorLoading": "No se pudo cargar el capítulo.",
+    "notAvailable": "Capítulo no disponible.",
+    "back": "Volver",
+    "readCascade": "Leer en cascada",
+    "readPaged": "Leer en paginado",
+    "noImages": "No hay imágenes disponibles."
+  },
+  "createseries": {
+    "title": "Añadir una nueva serie",
+    "deleteImage": "Eliminar imagen",
+    "titleLabel": "Título:",
+    "artistsLabel": "Artistas:",
+    "statusLabel": "Estado:",
+    "ongoing": "En progreso",
+    "completed": "Completada",
+    "descriptionLabel": "Descripción:",
+    "descriptionPlaceholder": "Escribe una breve descripción de la serie...",
+    "coverImageLabel": "Imagen de portada",
+    "coverImageHint": "Toca la imagen para subir o cambiar la portada.",
+    "saveBtn": "Guardar serie y continuar a crear capítulos",
+    "errors": {
+      "noFileSelected": "No se seleccionó ningún archivo",
+      "invalidFile": "Archivo inválido",
+      "imageFormatError": "Solo JPG/JPEG o PNG",
+      "imageUploadError": "Error al subir la imagen",
+      "imageLoadError": "Ocurrió un error al cargar la imagen.",
+      "imageSaveError": "Ocurrió un error al guardar la imagen.",
+      "titleRequired": "El título debe contener datos."
+    }
+  },
+  "createchapters": {
+    "title": "Añadir capítulos",
+    "chapterNumberLabel": "Número de capítulo:",
+    "titleOptionalLabel": "Título (opcional):",
+    "deleteAllImages": "Eliminar todas las imágenes",
+    "uploadPrompt": "Haz clic en el icono para subir una nueva página de capítulo",
+    "saveBtn": "Guardar capítulo",
+    "backBtn": "Volver al menú",
+    "submitted": "CAPÍTULO ENVIADO.",
+    "errors": {
+      "noFileSelected": "No se seleccionó ningún archivo",
+      "invalidFile": "El archivo subido no es válido.",
+      "imageFormatError": "Solo JPG/JPEG o PNG",
+      "imageUploadError": "Error al subir la imagen",
+      "imageSaveError": "Ocurrió un error al guardar las imágenes.",
+      "chapterSaveError": "Ocurrió un error al guardar el capítulo. Probablemente ya exista un capítulo con el mismo número para esta serie.",
+      "numberRequired": "Se requiere un número de capítulo."
+    }
+  },
+  "adminPanel": {
+    "title": "Panel de administrador",
+    "users": "Usuarios",
+    "series": "Series"
+  },
+  "creatorPanel": {
+    "title": "Panel de creador",
+    "createWork": "Crear obra",
+    "loading": "Cargando obras...",
+    "noWorks": "No hay obras creadas todavía."
+  },
+  "creatorWorkViewer": {
+    "loading": "Cargando obra...",
+    "noCover": "Sin portada",
+    "noDescription": "Sin descripción.",
+    "editWork": "Editar obra",
+    "deleteWork": "Borrar obra",
+    "addChapter": "Añadir capítulo",
+    "chapters": "Capítulos",
+    "loadingChapters": "Cargando capítulos...",
+    "deleteChapter": "Eliminar capítulo",
+    "chapter": "Capítulo",
+    "number": "Número",
+    "confirmDeleteWork": "¿Deseas borrar esta obra?",
+    "deleteTitle": "Eliminar obra",
+    "cancel": "Cancelar",
+    "delete": "Borrar",
+    "invalidId": "Id de obra inválido.",
+    "deleteError": "No se pudo borrar la obra.",
+    "chapterDeleteError": "No se pudo borrar el capítulo.",
+    "loadError": "No se pudieron cargar los datos de la obra.",
+    "error": "Error"
+  },
+  "editWork": {
+    "title": "Editar obra",
+    "noCover": "Sin portada",
+    "changeCover": "Cambiar portada",
+    "workTitle": "Título",
+    "description": "Descripción",
+    "saving": "Guardando...",
+    "saveWork": "Guardar obra",
+    "permissionDenied": "Permiso de galería denegado.",
+    "loadError": "No se pudieron cargar los datos de la obra.",
+    "saveError": "No se pudieron guardar los cambios."
+  },
+  "seriesList": {
+    "title": "Título",
+    "artists": "Artistas",
+    "deleteSeries": "Eliminar serie",
+    "deleteError": "No se pudo borrar la obra."
+  },
+  "userList": {
+    "username": "Nombre de usuario",
+    "email": "Email",
+    "userType": "Tipo de usuario",
+    "deleteUser": "Eliminar usuario",
+    "switchAdmin": "Cambiar admin"
+  },
+  "creatorWorkCard": {
+    "noCover": "Sin portada",
+    "untitled": "Obra sin título",
+    "totalChapters": "Capítulos totales"
+  },
+  "inputSearch": {
+    "placeholder": "Buscar..."
+  }
+}

@@ -1,19 +1,26 @@
-import { commonStyles } from "@/components/styles/commonStyles";
 import { useContextUser } from "@/contexts/ThemeProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import { useCommonStyles } from "@/hooks/useCommonStyles";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 export default function Profile() {
 
     const { userData, setUserData, apiDir } = useContextUser();
     const [error, setError] = useState<string | null>(null);
     const [image, setImage] = useState("null");
+    const { t } = useTranslation();
 
     const pathname = usePathname();
+
+    const commonStyles = useCommonStyles();
+    const colors = useThemeColors();
 
     const [formData, setFormData] = useState({
         picture: "null",
@@ -69,7 +76,7 @@ export default function Profile() {
 
                         const message =
                             text ||
-                            `Error ${response.status}`;
+                            `Error al iniciar sesión ${response.status}`;
 
                         throw new Error(message);
                     }
@@ -91,56 +98,6 @@ export default function Profile() {
                             date: data.register_date,
                             type: data.utype
                         }));
-                    }
-                })
-                .catch((error) => {
-
-                    console.error(error);
-                    router.replace("/");
-                }
-                );
-        }
-    }
-
-     const llamadaApiComprobacion = async () => {
-
-        if (userData) {
-
-            fetch(`${apiDir}/user/${userData}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-                .then(async (response) => {
-
-                    const text = await response.text();
-
-                    console.log(text);
-
-                    let dataResult = null;
-
-                    try {
-                        dataResult = text ? JSON.parse(text) : null;
-                    } catch (e) {
-                        
-                        dataResult = null;
-                    }
-
-                    if (!response.ok) {
-
-                        const message =
-                            text ||
-                            `Error ${response.status}`;
-
-                        throw new Error(message);
-                    }
-
-                    return dataResult;
-                })
-                .then((data) => {
-                    if (data === null) {
-                        logout();
                     }
                 })
                 .catch((error) => {
@@ -174,6 +131,8 @@ export default function Profile() {
 
         const form = new FormData();
 
+        let respuesta = "null";
+
         if (Platform.OS === "web") {
             const blob = await fetch(image).then(res => res.blob());
             form.append("image", blob, "avatar.jpg");
@@ -193,17 +152,24 @@ export default function Profile() {
             })
                 .then((response) => {
                     if (!response.ok) {
-                        throw new Error("Error al subir la imagen");
+                        throw new Error(t("profile.errors.imageUploadError"));
                     }
                     return response.text();
                 })
                 .then((url) => {
-                    //return setFormData(prev => ({ ...prev, picture: url }));
-                     continueUpdate(url);
+
+                    if (url !== null) {
+                        //return setFormData(prev => ({ ...prev, picture: url }));
+                        continueUpdate(url);
+                    }
+                    else {
+
+                        logout();
+                    }
                 })
                 .catch((error) => {
                     console.error("Error:", error);
-                    setError("An error ocurred saving the image.");
+                    setError(t("profile.errors.imageSaveError"));
                 });
         }
     }
@@ -211,8 +177,6 @@ export default function Profile() {
     const updateUser = async () => {
 
         if (userData) {
-
-            await llamadaApiComprobacion();
 
             if (image !== "null") {
 
@@ -225,8 +189,14 @@ export default function Profile() {
                     fetch(`${apiDir}/user/delete/${userData}`, {
                         method: "DELETE",
                     })
+                        .then((data) => {
+                            if (data === null) {
+
+                                logout();
+                            }
+                        })
                         .catch(() => {
-                            setError("An error ocurred saving the data.");
+                            setError(t("profile.errors.imageSaveError"));
                         });
 
                     continueUpdate("null");
@@ -273,7 +243,7 @@ export default function Profile() {
 
                         const message =
                             text ||
-                            `Error ${response.status}`;
+                            `Error al iniciar sesión ${response.status}`;
 
                         throw new Error(message);
                     }
@@ -281,11 +251,17 @@ export default function Profile() {
                     return dataResult;
                 })
                 .then((data) => {
-                    router.push("/");
+
+                    if (data !== null) {
+                        //guardarDatos();
+                        router.push("/");
+                    }
+                    else {
+                        logout();
+                    }
                 })
                 .catch((error) => {
-
-                    setError("An error ocurred saving the data.");
+                    setError(t("profile.errors.imageSaveError"));
                 }
                 );
         }
@@ -296,34 +272,30 @@ export default function Profile() {
         if (Platform.OS === "web") {
             const input = document.createElement("input");
             input.type = "file";
-            input.accept = ".png,.jpg,.jpeg,image/png,image/jpeg";
+            input.accept = "image/*";
 
             input.onchange = (e) => {
 
                 const target = e.currentTarget as HTMLInputElement;
 
                 if (!target || !target.files || target.files.length === 0) {
-                    setError("Any file selected.");
+                    setError(t("profile.errors.noFileSelected"));
                     return;
                 }
 
                 const file = target.files[0];
 
                 if (!file) {
-                    setError("The uploaded file is not valid.");
+                    setError(t("profile.errors.invalidFile"));
                     return;
                 }
 
-                const isValid =
-                    file.type === "image/png" ||
-                    file.type === "image/jpeg";
-
-                if (isValid) {
+                if (file.type.startsWith("image/")) {
                     const url = URL.createObjectURL(file);
                     setImage(url);
                     setError(null);
                 } else {
-                    setError("Only JPG/JPEG or PNG");
+                    setError(t("profile.errors.imageFormatError"));
                 }
             };
 
@@ -351,7 +323,7 @@ export default function Profile() {
                 setImage(uri);
                 setError(null);
             } else {
-                setError("Only JPG/JPEG or PNG");
+                setError(t("profile.errors.imageFormatError"));
             }
         }
     };
@@ -366,8 +338,8 @@ export default function Profile() {
                     contentContainerStyle={commonStyles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <Text style={commonStyles.title}>Profile settings</Text>
-                    <Text style={commonStyles.subtitle}>Manage your profile media account information</Text>
+                    <Text style={commonStyles.title}>{t("profile.title")}</Text>
+                    <Text style={commonStyles.subtitle}>{t("profile.subtitle")}</Text>
 
                     {error &&
                         <Text style={[commonStyles.required, { textAlign: "center" }]}>{error}</Text>
@@ -379,27 +351,27 @@ export default function Profile() {
                                 <Image source={{ uri: image !== "null" ? image : `${apiDir}${formData.picture}?t=${Date.now()}` }} style={[commonStyles.iconImage, { marginTop: 20, height: 100, width: 100 }]} />
                             </TouchableOpacity>
                             <TouchableOpacity style={commonStyles.iconContainer} onPress={() => { setImage("null"); setFormData(prev => ({ ...prev, picture: "null" })) }}>
-                                <Text style={commonStyles.textLinkLink}>Delete image</Text>
+                                <Text style={commonStyles.textLinkLink}>{t("profile.deleteImage")}</Text>
                             </TouchableOpacity>
                         </>
                     ) : (
                         <TouchableOpacity style={[commonStyles.iconBox, { marginTop: 20 }]} onPress={pickImage}>
-                            <Ionicons name="person-circle" size={100} color="#000" />
+                            <Ionicons name="person-circle" size={100} color={colors.text} />
                         </TouchableOpacity>
                     )
                     }
 
-                    <Text style={commonStyles.subtitle}>Profile picture</Text>
-                    <Text style={[commonStyles.title, { marginTop: 20 }]}>Account information</Text>
+                    <Text style={commonStyles.subtitle}>{t("profile.profilePicture")}</Text>
+                    <Text style={[commonStyles.title, { marginTop: 20 }]}>{t("profile.accountInformation")}</Text>
 
                     <View style={{ alignSelf: "center", width: "100%" }}>
                         <View style={{ flexDirection: "row", gap: 10, height: 70 }}>
                             <View style={{ flex: 1 }}>
-                                <Text>Username:</Text>
+                                <Text style={{ color: colors.text }}>{t("profile.username")}</Text>
                                 <TextInput
                                     style={commonStyles.passwordInput}
                                     placeholder={formData.uname}
-                                    placeholderTextColor="#ccc"
+                                    placeholderTextColor={colors.placeholder}
                                     value={formData.uname}
                                     onChangeText={(text) => setFormData(prev => ({ ...prev, uname: text }))}
                                     autoCapitalize="none"
@@ -407,11 +379,11 @@ export default function Profile() {
                             </View>
 
                             <View style={{ flex: 1 }}>
-                                <Text>Email:</Text>
+                                <Text style={{ color: colors.text }}>{t("profile.email")}</Text>
                                 <ScrollView
-                                    style={[commonStyles.passwordInput, { backgroundColor: "lightgray" }]}
+                                    style={[commonStyles.passwordInput, { backgroundColor: colors.borderLight }]}
                                 >
-                                    <Text>
+                                    <Text style={{ color: colors.text }}>
                                         {formData.email}
                                     </Text>
                                 </ScrollView>
@@ -431,11 +403,11 @@ export default function Profile() {
                         </View>
                         <View style={{ flexDirection: "column", marginTop: 10, height: 70 }}>
                             <View style={{ flex: 1 }}>
-                                <Text>Bio:</Text>
+                                <Text style={{ color: colors.text }}>{t("profile.bio")}</Text>
                                 <TextInput
                                     style={commonStyles.passwordInput}
                                     placeholder={formData.bio}
-                                    placeholderTextColor="#ccc"
+                                    placeholderTextColor={colors.placeholder}
                                     value={formData.bio}
                                     onChangeText={(text) => setFormData(prev => ({ ...prev, bio: text }))}
                                     autoCapitalize="none"
@@ -445,20 +417,20 @@ export default function Profile() {
 
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 90, marginTop: 10 }}>
                             <View>
-                                <Text>Account created:</Text>
-                                <Text>{formData.date}</Text>
+                                <Text style={{ color: colors.text }}>{t("profile.accountCreated")}</Text>
+                                <Text style={{ color: colors.textSecondary }}>{formData.date}</Text>
                             </View>
 
                             <View>
                                 <View>
-                                    <Text>Rol:</Text>
-                                    <Text>{formData.type}</Text>
+                                    <Text style={{ color: colors.text }}>{t("profile.role")}</Text>
+                                    <Text style={{ color: colors.textSecondary }}>{formData.type}</Text>
                                 </View>
                             </View>
                         </View>
 
                         <TouchableOpacity style={[commonStyles.iconBox, commonStyles.formButton, { marginTop: 20 }]} onPress={updateUser}>
-                            <Text>Save changes</Text>
+                            <Text style={{ color: colors.text }}>{t("profile.saveChanges")}</Text>
                         </TouchableOpacity>
                     </View>
                     <View style={commonStyles.footer}/>

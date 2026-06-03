@@ -1,10 +1,12 @@
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { usePathname, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Image, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
-import { headerStyles } from "./styles/HeaderStyles";
 import { useContextUser } from "@/contexts/ThemeProvider";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { usePathname, useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Image, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
+import { useHeaderStyles } from "@/hooks/useHeaderStyles";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 interface HeaderProps {
   showUserMenu?: boolean;
@@ -13,30 +15,14 @@ interface HeaderProps {
 export default function Header({ showUserMenu = true }: HeaderProps) {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [image, setImage] = useState("null");
+  const { t, i18n } = useTranslation();
 
   const router = useRouter();
   const pathname = usePathname();
 
   const { userData, setUserData, apiDir } = useContextUser();
-
-  {/*
-  useEffect(() => {
-
-    if (userData === undefined) return;
-
-    if (!userData) {
-      router.replace("/");
-    }
-    else {
-
-      if(apiDir){
-
-        llamadaApi();
-      }
-    }
-  }, [userData, apiDir]);
-
-  */}
+  const styles = useHeaderStyles();
+  const colors = useThemeColors();
 
   const navigateToHome = () => {
     router.push("/");
@@ -52,6 +38,11 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
     router.push("/auth/register");
   };
 
+  const navigateToProfile = () => {
+    setIsMenuVisible(false);
+    router.push("/auth/profile");
+  };
+
   const toggleMenu = () => {
     if (!userData) {
       setIsMenuVisible(!isMenuVisible);
@@ -60,6 +51,21 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
 
   const closeMenu = () => {
     setIsMenuVisible(false);
+  };
+
+  const [isLangMenuVisible, setIsLangMenuVisible] = useState(false);
+
+  const openLangMenu = () => {
+    setIsLangMenuVisible(true);
+  };
+
+  const closeLangMenu = () => {
+    setIsLangMenuVisible(false);
+  };
+
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+    closeLangMenu();
   };
 
   const llamadaApi = () => {
@@ -71,29 +77,17 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
         }
       })
         .then(async (response) => {
-
           const text = await response.text();
-
-          console.log(text);
-
           let dataResult = null;
-
           try {
             dataResult = text ? JSON.parse(text) : null;
           } catch (e) {
-
             dataResult = null;
           }
-
           if (!response.ok) {
-
-            const message =
-              text ||
-              `Error al iniciar sesión ${response.status}`;
-
+            const message = text || `Error al iniciar sesión ${response.status}`;
             throw new Error(message);
           }
-
           return dataResult;
         })
         .then((data) => {
@@ -105,20 +99,15 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
           }
         })
         .catch((error) => {
-
           console.error(error);
           router.replace("/");
-        }
-        );
+        });
     }
   }
 
   const logout = async () => {
-
     try {
-
       if (Platform.OS === "web") {
-
         localStorage.removeItem("user_id");
       }
       else {
@@ -142,22 +131,22 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
         </TouchableOpacity>
 
         <View style={styles.rightIcons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="search" size={24} color="#000" />
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/SearchScreen")}>
+            <Ionicons name="search" size={24} color={colors.text} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton}>
-            <FontAwesome name="language" size={24} color="#000" />
+          <TouchableOpacity style={styles.iconButton} onPress={openLangMenu}>
+            <FontAwesome name="language" size={24} color={colors.text} />
           </TouchableOpacity>
 
           {(image !== "null") ? (
-            <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
+            <TouchableOpacity style={styles.iconButton} onPress={userData ? navigateToProfile : toggleMenu}>
               <Image source={{ uri: image }} style={styles.iconImage} resizeMode="contain" />
             </TouchableOpacity>
           ) :
             (
-              <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
-                <Ionicons name="person-circle" size={28} color="#000" />
+              <TouchableOpacity style={styles.iconButton} onPress={userData ? navigateToProfile : toggleMenu}>
+                <Ionicons name="person-circle" size={28} color={colors.text} />
               </TouchableOpacity>
             )
           }
@@ -169,18 +158,28 @@ export default function Header({ showUserMenu = true }: HeaderProps) {
           <TouchableOpacity style={styles.overlay} onPress={closeMenu}>
             <View style={styles.menuContainer}>
               <TouchableOpacity style={styles.menuItem} onPress={navigateToLogin}>
-                <Text style={styles.menuText}>Sign In</Text>
+                <Text style={styles.menuText}>{t('header.signIn')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={navigateToRegister}>
-                <Text style={styles.menuText}>Sign Up</Text>
+                <Text style={styles.menuText}>{t('header.signUp')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </Modal>
       )}
+
+      <Modal visible={isLangMenuVisible} transparent animationType="fade" onRequestClose={closeLangMenu}>
+        <TouchableOpacity style={styles.overlay} onPress={closeLangMenu}>
+          <View style={[styles.menuContainer, { right: 80 }]}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => changeLanguage("es")}>
+              <Text style={styles.menuText}>Español</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => changeLanguage("en")}>
+              <Text style={styles.menuText}>English</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
-
-const styles = headerStyles;
-

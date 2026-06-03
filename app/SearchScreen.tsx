@@ -2,28 +2,35 @@ import { useContextUser } from "@/contexts/ThemeProvider";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useCommonStyles } from "@/hooks/useCommonStyles";
 import { ThemeColors, useThemeColors } from "@/hooks/useThemeColors";
 
 interface SeriesItem {
   series_id: number;
   title: string;
   front_picture: string;
-  creation_date?: string;
+  artists?: string;
+  publication_state?: string;
+  user_id_fk?: number;
 }
 
-export default function MyList() {
+export default function SearchScreen() {
   const router = useRouter();
-  const { apiDir, userData } = useContextUser();
+  const { apiDir } = useContextUser();
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SeriesItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
-  const { width } = useWindowDimensions();
   const { t } = useTranslation();
 
   const colors = useThemeColors();
+  const commonStyles = useCommonStyles();
   const styles = getStyles(colors);
+
+  const searchText = query.trim();
+  const { width } = useWindowDimensions();
 
   const columns = useMemo(() => {
     if (width < 520) return 3;
@@ -33,41 +40,51 @@ export default function MyList() {
   }, [width]);
 
   const itemWidth = useMemo(() => {
-    const horizontalPadding = 24;
+    const horizontalPadding = 24; // 12 left + 12 right
     const spacing = (columns - 1) * 12;
     const available = Math.max(width - horizontalPadding - spacing, 0);
     return Math.floor(available / columns);
   }, [width, columns]);
 
   useEffect(() => {
-    if (!apiDir || !userData) {
+    if (!apiDir) {
       setResults([]);
-      setLoading(false);
-      setError(userData === undefined ? null : t("mylist.signInPrompt"));
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    const fetchFollowed = async () => {
-      try {
-        const response = await fetch(`${apiDir}/series/followed/${userData}`);
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}`);
-        }
-        const data = await response.json();
-        setResults(Array.isArray(data) ? data : []);
-      } catch {
-        setError(t("mylist.errorLoading"));
+    const timer = setTimeout(() => {
+      if (searchText.length === 0) {
         setResults([]);
-      } finally {
+        setError(null);
         setLoading(false);
+        return;
       }
-    };
 
-    fetchFollowed();
-  }, [apiDir, userData]);
+      setLoading(true);
+      setError(null);
+
+      fetch(`${apiDir}/series/search?query=${encodeURIComponent(searchText)}`)
+        .then(async (response) => {
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `Error ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data: SeriesItem[]) => {
+          setResults(Array.isArray(data) ? data : []);
+        })
+        .catch(() => {
+          setError(t("search.errorLoading"));
+          setResults([]);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [apiDir, searchText]);
 
   const placeholderUrl = apiDir ? `${apiDir}/images/placeholder/placeholder.png` : undefined;
 
@@ -83,13 +100,13 @@ export default function MyList() {
     router.push(`/series/${item.series_id}`);
   };
 
-  const renderedContent = () => {
-    if (loading) {
-      return <ActivityIndicator size="large" color={colors.text} style={styles.loading} />;
+  const renderedResults = () => {
+    if (searchText.length === 0) {
+      return <Text style={styles.emptyText}>{t("search.emptyPrompt")}</Text>;
     }
 
-    if (!userData) {
-      return <Text style={styles.emptyText}>{t("mylist.signInPrompt")}</Text>;
+    if (loading) {
+      return <ActivityIndicator size="large" color={colors.text} style={styles.loading} />;
     }
 
     if (error) {
@@ -97,7 +114,7 @@ export default function MyList() {
     }
 
     if (!results.length) {
-      return <Text style={styles.emptyText}>{t("mylist.emptyList")}</Text>;
+      return <Text style={styles.emptyText}>{t("search.noResults")}</Text>;
     }
 
     return (
@@ -126,10 +143,19 @@ export default function MyList() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.sectionTitle}>{t("mylist.title")}</Text>
+      <View style={styles.searchHeader}>
+        <Text style={styles.title}>{t("search.title")}</Text>
+        <TextInput
+          placeholder={t("search.placeholder")}
+          placeholderTextColor={colors.textSecondary}
+          style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
       </View>
-      <View style={styles.resultsContainer}>{renderedContent()}</View>
+      <View style={styles.resultsContainer}>{renderedResults()}</View>
     </View>
   );
 }
@@ -139,7 +165,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
+  searchHeader: {
     paddingHorizontal: 16,
     paddingTop: Platform.OS === "ios" ? 16 : 24,
     paddingBottom: 12,
@@ -147,13 +173,25 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  sectionTitle: {
-    fontSize: 28,
+  title: {
+    fontSize: 24,
     fontWeight: "700",
+    color: colors.text,
+    marginBottom: 12,
+  },
+  searchInput: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    backgroundColor: colors.cardItem,
     color: colors.text,
   },
   resultsContainer: {
     flex: 1,
+    paddingHorizontal: 12,
     paddingTop: 12,
   },
   listContent: {
@@ -188,7 +226,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.placeholder,
+    backgroundColor: colors.borderLight,
   },
   coverPlaceholderText: {
     color: colors.textSecondary,

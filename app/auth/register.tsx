@@ -1,26 +1,33 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import * as SecureStore from 'expo-secure-store';
 import { useContextUser } from "@/contexts/ThemeProvider";
+import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
-import { commonStyles } from "@/components/styles/commonStyles";
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useCommonStyles } from "@/hooks/useCommonStyles";
+import { ThemeColors, useThemeColors } from "@/hooks/useThemeColors";
 
 export default function Register() {
 
-  const { userData, setUserData } = useContextUser();
+  const { userData, setUserData, apiDir } = useContextUser();
+  const { t } = useTranslation();
 
   const pathname = usePathname();
+
+  const commonStyles = useCommonStyles();
+  const colors = useThemeColors();
+  const styles = getStyles(colors);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -35,7 +42,7 @@ export default function Register() {
     password: ""
   });
 
-  const API_URL = "http://192.168.1.45:8083";
+  const API_URL = apiDir ?? "http://192.168.1.45:8083";
 
   useEffect(() => {
 
@@ -83,28 +90,29 @@ export default function Register() {
         email = email.toLowerCase().trim();
       }
 
-      setFormData({ name: name, email: email, password: password });
+      const normalizedFormData = { name: name, email: email, password: password };
+      setFormData(normalizedFormData);
 
-      console.log(formData);
+      console.log(normalizedFormData);
 
       if (name === "") {
-        newErrors.name = "No se ha insertado ningún carácter en el nombre";
+        newErrors.name = t("register.validation.emptyName");
         exit = true;
       }
 
       if (email === "") {
-        newErrors.email = "No se ha insertado ningún carácter en el email";
+        newErrors.email = t("register.validation.emptyEmail");
         exit = true;
       } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-        newErrors.email = "El email insertado no es válido";
+        newErrors.email = t("register.validation.invalidEmail");
         exit = true;
       }
 
       if (password === "") {
-        newErrors.password = "No se ha insertado ningún carácter en la contraseña";
+        newErrors.password = t("register.validation.emptyPassword");
         exit = true;
       } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]).{8,}$/.test(password) || /\s/.test(password)) {
-        newErrors.password = "La contraseña insertada no es válida; debe contener al menos 8 caracteres, una mayúscula, una minúscula y un carácter especial. No debe tener espacios.";
+        newErrors.password = t("register.validation.invalidPassword");
         exit = true;
       }
 
@@ -112,115 +120,112 @@ export default function Register() {
       console.log(newErrors);
 
       if (!exit) {
-        await preregister();
+        await registerAndLogin({ name, email, password });
       }
 
-    } catch (e) {
-      setErrors({ name: "", email: "Error de registro", password: "" });
-    } finally {
-
+    } catch (e: any) {
+      setErrors((prev) => ({ ...prev, email: typeof e?.message === 'string' ? e.message : t('register.validation.generalError') }));
     }
   }
 
-  const preregister = async () => {
-
-    register();
+  const preregister = async (data: { name: string; email: string; password: string }) => {
+    return register(data);
   }
 
-  const register = () => {
+  const register = async (data: { name: string; email: string; password: string }) => {
+    try {
+      const response = await fetch(`${API_URL}/user/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uname: data.name,
+          email: data.email,
+          upassword: data.password,
+        }),
+      });
 
-    fetch(`${API_URL}/user/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        uname: formData.name.trim(),
-        email: formData.email.toLowerCase().trim(),
-        upassword: formData.password,
-      }),
-    })
-      .then(async (response) => {
+      const text = await response.text();
+      console.log("register response:", response.status, text);
 
-        const text = await response.text();
-
-        console.log(text);
-
-        let dataResult = null;
-
+      let dataResult = null;
+      if (text) {
         try {
-          dataResult = text ? JSON.parse(text) : null;
-        } catch (e) {
-          // No era JSON
-          dataResult = null;
+          dataResult = JSON.parse(text);
+        } catch (error) {
+          dataResult = text;
         }
-
-        if (!response.ok) {
-
-          const message =
-            text ||
-            `Error de registro ${response.status}`;
-
-          throw new Error(message);
-        }
-
-        return dataResult;
-      })
-      .then(() => {
-        console.log("llega");
-        return fetch(`${API_URL}/user/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email.toLowerCase().trim(),
-            upassword: formData.password,
-          })
-        });
-      })
-      .then(async (response) => {
-
-        const text = await response.text();
-
-        console.log(text);
-
-        let dataResult = null;
-
-        try {
-          dataResult = text ? JSON.parse(text) : null;
-        } catch (e) {
-          // No era JSON
-          dataResult = null;
-        }
-
-        if (!response.ok) {
-
-          const message =
-            text ||
-            `Error al iniciar sesión ${response.status}`;
-
-          throw new Error(message);
-        }
-
-        return dataResult;
-      })
-      .then((data) => {
-
-        if (data !== null) {
-
-          console.log("Login correcto. userId:", data.userId);
-
-          guardarDatos(String(data.userId));
-        }
-      })
-      .catch((error) => {
-
-        let newError = { name: "Error al registrarse, quizás ya haya una cuenta con el correo insertado.", email: "", password: "" };
-        setErrors(newError);
-        console.error(error);
       }
-      );
+
+      if (!response.ok) {
+        const message =
+          typeof dataResult === 'string'
+            ? dataResult
+            : text || `${t("register.validation.generalError")} ${response.status}`;
+        throw new Error(message);
+      }
+
+      return dataResult;
+    } catch (error: any) {
+      const message = error?.message || t('register.validation.generalError');
+      setErrors((prev) => ({ ...prev, email: message }));
+      throw error;
+    }
+  };
+
+  const login = async (data: { email: string; password: string }) => {
+    try {
+      const response = await fetch(`${API_URL}/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          upassword: data.password,
+        }),
+      });
+
+      const text = await response.text();
+      console.log("login response:", response.status, text);
+
+      let dataResult = null;
+      if (text) {
+        try {
+          dataResult = JSON.parse(text);
+        } catch (error) {
+          dataResult = text;
+        }
+      }
+
+      if (!response.ok) {
+        const message =
+          typeof dataResult === 'string'
+            ? dataResult
+            : text || `${t("register.validation.generalLoginError")} ${response.status}`;
+        throw new Error(message);
+      }
+
+      if (dataResult && typeof dataResult === 'object' && 'userId' in dataResult) {
+        guardarDatos(String((dataResult as any).userId));
+      } else {
+        throw new Error(t('register.validation.loginError'));
+      }
+    } catch (error: any) {
+      const message = error?.message || t('register.validation.generalLoginError');
+      setErrors((prev) => ({ ...prev, email: message }));
+      throw error;
+    }
+  };
+
+  const registerAndLogin = async (data: { name: string; email: string; password: string }) => {
+    try {
+      await preregister(data);
+      await login(data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const guardarDatos = async (userId: (string)) => {
@@ -262,16 +267,16 @@ export default function Register() {
           </View>
 
           {/* Registration Title */}
-          <Text style={styles.registrationTitle}>Registration</Text>
+          <Text style={styles.registrationTitle}>{t('register.title')}</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              Username <Text style={styles.required}>*</Text>
+              {t('register.username')} <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your username"
-              placeholderTextColor="#ccc"
+              placeholder={t('register.usernamePlaceholder')}
+              placeholderTextColor={colors.placeholder}
               value={formData.name}
               onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
               autoCapitalize="none"
@@ -288,12 +293,12 @@ export default function Register() {
           {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              E-Mail <Text style={styles.required}>*</Text>
+              {t('register.email')} <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#ccc"
+              placeholder={t('register.emailPlaceholder')}
+              placeholderTextColor={colors.placeholder}
               value={formData.email}
               onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
               keyboardType="email-address"
@@ -309,13 +314,13 @@ export default function Register() {
           {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              Password <Text style={styles.required}>*</Text>
+              {t('register.password')} <Text style={styles.required}>*</Text>
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Enter your password"
-                placeholderTextColor="#ccc"
+                placeholder={t('register.passwordPlaceholder')}
+                placeholderTextColor={colors.placeholder}
                 value={formData.password}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
                 secureTextEntry={!showPassword}
@@ -328,7 +333,7 @@ export default function Register() {
                 <Ionicons
                   name={showPassword ? "eye" : "eye-off"}
                   size={20}
-                  color="#666"
+                  color={colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -343,20 +348,20 @@ export default function Register() {
           <TouchableOpacity
             style={[
               styles.signUpButton,
-              disable ? { backgroundColor: "#c9c9c9" } : { backgroundColor: "#000" }
+              disable ? { backgroundColor: colors.placeholder } : { backgroundColor: colors.text }
             ]}
             onPress={handleSignUp}
             activeOpacity={0.7}
             disabled={disable}
           >
-            <Text style={styles.signUpButtonText}>Sign up</Text>
+            <Text style={[styles.signUpButtonText, { color: colors.background }]}>{t('register.signUpBtn')}</Text>
           </TouchableOpacity>
 
           {/* Sign In Link */}
           <View style={styles.signInContainer}>
-            <Text style={styles.signInText}>Already have an account? </Text>
+            <Text style={styles.signInText}>{t('register.alreadyHaveAccount')}</Text>
             <TouchableOpacity>
-              <Text style={styles.signInLink}>Sign in</Text>
+              <Text style={styles.signInLink}>{t('register.signIn')}</Text>
             </TouchableOpacity>
           </View>
           <View style={commonStyles.footer}/>
@@ -366,10 +371,10 @@ export default function Register() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
   containerInner: {
     flex: 1,
@@ -396,7 +401,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 40,
-    color: "#000",
+    color: colors.text,
   },
   inputGroup: {
     marginBottom: 24,
@@ -405,21 +410,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#000",
+    color: colors.text,
   },
   required: {
-    color: "#e74c3c",
+    color: colors.danger,
     fontWeight: "700",
   },
   input: {
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: colors.border,
     borderRadius: 4,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#000",
-    backgroundColor: "#fff",
+    color: colors.text,
+    backgroundColor: colors.inputBackground,
   },
   passwordInputContainer: {
     position: "relative",
@@ -429,13 +434,13 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: colors.border,
     borderRadius: 4,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#000",
-    backgroundColor: "#fff",
+    color: colors.text,
+    backgroundColor: colors.inputBackground,
     paddingRight: 44,
   },
   eyeIcon: {
@@ -449,10 +454,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: colors.border,
   },
   signUpButtonText: {
-    color: "#fff",
+    color: colors.text,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -463,7 +468,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   signInLink: {
     fontSize: 14,

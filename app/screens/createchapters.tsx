@@ -1,11 +1,13 @@
-import { commonStyles } from "@/components/styles/commonStyles";
 import { useContextUser } from "@/contexts/ThemeProvider";
-import { router, useLocalSearchParams, usePathname } from "expo-router";
-import { useEffect, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import * as SecureStore from 'expo-secure-store';
-import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { router, useLocalSearchParams, usePathname } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useCommonStyles } from "@/hooks/useCommonStyles";
+import { ThemeColors, useThemeColors } from "@/hooks/useThemeColors";
 
 export default function Createchapters() {
 
@@ -13,6 +15,10 @@ export default function Createchapters() {
     const { userData, setUserData, apiDir } = useContextUser();
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+    const commonStyles = useCommonStyles();
+    const styles = getStyles(colors);
 
     const pathname = usePathname();
 
@@ -21,7 +27,7 @@ export default function Createchapters() {
         title: "",
     });
 
-    const [image, setImage] = useState<string[]>([]);
+    const [images, setImages] = useState<Array<{ uri: string; mimeType: string }>>([]);
 
     useEffect(() => {
 
@@ -101,42 +107,47 @@ export default function Createchapters() {
     };
 
     const uploadImage = async (chapter_id: number) => {
-
-        for (let i = 0; i < image.length; i++) {
+        for (let i = 0; i < images.length; i++) {
             const form = new FormData();
+            const imageItem = images[i];
+            let mimeType = imageItem.mimeType || "image/jpeg";
+            let fileName = `page_${i + 1}.jpg`;
+            if (mimeType === "image/png") {
+                fileName = `page_${i + 1}.png`;
+            }
 
             if (Platform.OS === "web") {
-                const blob = await fetch(image[i]).then(res => res.blob());
-                form.append("image", blob, "front.jpg");
+                const blob = await fetch(imageItem.uri).then((res) => res.blob());
+                const blobType = blob.type || mimeType;
+                const name = blobType === "image/png" ? `page_${i + 1}.png` : `page_${i + 1}.jpg`;
+                form.append("image", blob, name);
             } else {
                 form.append("image", {
-                    uri: image,
-                    name: "front.jpg",
-                    type: "image/jpeg",
+                    uri: imageItem.uri,
+                    name: fileName,
+                    type: mimeType,
                 } as any);
             }
 
             if (userData) {
-
-                fetch(`${apiDir}/chapter/upload/${chapter_id}/${i + 1}`, {
-                    method: "POST",
-                    body: form,
-                })
-                    .then((response) => {
-                        if (!response.ok) {
-                            throw new Error("Error al subir la imagen");
-                        }
-                        return response.text();
-                    })
-                    .then((url) => {
-
-                        continueUpdate(url, chapter_id, i);
-                    })
-                    .catch((error) => {
-                        console.error("Error:", error);
-                        setError("An error ocurred loading the images.");
-                        setLoading(false);
+                try {
+                    const response = await fetch(`${apiDir}/chapter/upload/${chapter_id}/${i + 1}`, {
+                        method: "POST",
+                        body: form,
                     });
+
+                    if (!response.ok) {
+                        throw new Error(t("createchapters.errors.imageUploadError"));
+                    }
+
+                    const url = await response.text();
+                    await continueUpdate(url, chapter_id, i);
+                } catch (error) {
+                    console.error("Error:", error);
+                    setError(t("createchapters.errors.imageSaveError"));
+                    setLoading(false);
+                    return;
+                }
             }
         }
     }
@@ -194,25 +205,24 @@ export default function Createchapters() {
                 })
                 .then(async (data) => {
 
-                    if (image.length > 0) {
-
+                    if (images.length > 0) {
                         await uploadImage(data.chapterId);
                     }
                     else{
-                        setError("CHAPTER SUBMITTED.");
+                        setError(t("createchapters.submitted"));
                         setLoading(false);
                     }
                 })
                 .catch((error) => {
 
-                    setError("An error ocurred saving the chapter. Probably, there's a chapter with the same chapter number for this series.");
+                    setError(t("createchapters.errors.chapterSaveError"));
                     setLoading(false);
                 }
                 );
         }
         else {
 
-            setError("Chapter number must have a chapter number.");
+            setError(t("createchapters.errors.numberRequired"));
             setLoading(false);
         }
 
@@ -257,21 +267,11 @@ export default function Createchapters() {
 
                         throw new Error(message);
                     }
-
-                    return dataResult;
-                })
-                .then((data) => {
-
-                    setError("CHAPTER SUBMITTED.");
-                    setLoading(false);
-                })
-                .catch((error) => {
-
-                    setError("An error ocurred saving the images.");
-                    setLoading(false);
                 }
                 );
         }
+
+        setLoading(false);
     };
 
     const pickImage = async () => {
@@ -286,14 +286,14 @@ export default function Createchapters() {
                 const target = e.currentTarget as HTMLInputElement;
 
                 if (!target || !target.files || target.files.length === 0) {
-                    setError("Any file selected.");
+                    setError(t("createchapters.errors.noFileSelected"));
                     return;
                 }
 
                 const file = target.files[0];
 
                 if (!file) {
-                    setError("The uploaded file is not valid.");
+                    setError(t("createchapters.errors.invalidFile"));
                     return;
                 }
 
@@ -303,10 +303,10 @@ export default function Createchapters() {
 
                 if (isValid) {
                     const url = URL.createObjectURL(file);
-                    setImage([...image, url]);
+                    setImages([...images, { uri: url, mimeType: file.type }]);
                     setError(null);
                 } else {
-                    setError("Only JPG/JPEG or PNG");
+                    setError(t("createchapters.errors.imageFormatError"));
                 }
             };
 
@@ -331,10 +331,10 @@ export default function Createchapters() {
                 uri.match(/\.(jpg|jpeg|png)$/i);
 
             if (isImage) {
-                setImage([...image, uri]);
+                setImages([...images, { uri, mimeType: type ?? "image/jpeg" }]);
                 setError(null);
             } else {
-                setError("Only JPG/JPEG or PNG");
+                setError(t("createchapters.errors.imageFormatError"));
             }
         }
     };
@@ -349,22 +349,19 @@ export default function Createchapters() {
                     contentContainerStyle={commonStyles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <Text style={commonStyles.title}>Add chapters</Text>
-                    <View style={{ flexDirection: "row", gap: 10, height: 70 }}>
-                        <View style={{ flex: 1 }}>
-                            <Text>Chapter number:</Text>
+                    <Text style={commonStyles.title}>{t("createchapters.title")}</Text>
+                    <View style={styles.chapterFields}> 
+                        <View style={styles.chapterField}>
+                            <Text style={commonStyles.label}>{t("createchapters.chapterNumberLabel")}</Text>
                             <TextInput
                                 style={commonStyles.passwordInput}
                                 placeholder={formData.cnumber}
-                                placeholderTextColor="#ccc"
+                        placeholderTextColor={colors.textSecondary}
                                 value={formData.cnumber}
                                 onChangeText={(text) => {
                                     let numeric = text.replace(/[^0-9]/g, "");
-
                                     numeric = numeric.replace(/^0+/, "");
-
                                     numeric = numeric.slice(0, 4);
-
                                     if (numeric === "" || parseInt(numeric) > 0) {
                                         setFormData(prev => ({
                                             ...prev,
@@ -376,12 +373,12 @@ export default function Createchapters() {
                             />
                         </View>
 
-                        <View style={{ flex: 1 }}>
-                            <Text>Title (optional):</Text>
+                        <View style={styles.chapterField}>
+                            <Text style={commonStyles.label}>{t("createchapters.titleOptionalLabel")}</Text>
                             <TextInput
                                 style={commonStyles.passwordInput}
                                 placeholder={formData.title}
-                                placeholderTextColor="#ccc"
+                        placeholderTextColor={colors.textSecondary}
                                 value={formData.title}
                                 onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
                                 autoCapitalize="none"
@@ -389,23 +386,24 @@ export default function Createchapters() {
                         </View>
                     </View>
 
-                    {image.map((img, index) => (
-                        <View style={{ width: "100%" }}>
-                            <Image key={index} source={{ uri: img }} style={[commonStyles.iconImage, { marginTop: 20, height: "100%", width: "80%", alignSelf: "center", aspectRatio: 3 / 4, }]} />
+                    {images.map((img, index) => (
+                        <View key={index} style={{ width: "100%" }}>
+                            <Image source={{ uri: img.uri }} style={[commonStyles.iconImage, { marginTop: 20, height: "100%", width: "80%", alignSelf: "center", aspectRatio: 3 / 4, }]} />
                         </View>
                     ))}
 
-                    {image.length > 0 &&
-                        <TouchableOpacity style={[commonStyles.iconContainer, {marginTop:20}]} onPress={() => { setImage([]) }}>
-                            <Text style={commonStyles.textLinkLink}>Delete all images</Text>
+                    {images.length > 0 &&
+                        <TouchableOpacity style={[commonStyles.iconContainer, {marginTop:20}]} onPress={() => { setImages([]) }}>
+                            <Text style={commonStyles.textLinkLink}>{t("createchapters.deleteAllImages")}</Text>
                         </TouchableOpacity>
                     }
 
-                    <TouchableOpacity style={[commonStyles.iconBox, { marginTop: 20 }]} onPress={pickImage}>
-                        <Ionicons name="image-outline" size={100} color="#000" />
-                    </TouchableOpacity>
-
-                    <Text style={commonStyles.subtitle}>Click the icon to upload a new chapter picture</Text>
+                    <View style={styles.imageUploadSection}>
+                        <TouchableOpacity style={[commonStyles.iconBox, styles.uploadBox]} onPress={pickImage}>
+                        <Ionicons name="image-outline" size={80} color={colors.text} />
+                        </TouchableOpacity>
+                        <Text style={commonStyles.subtitle}>{t("createchapters.uploadPrompt")}</Text>
+                    </View>
 
                     {error &&
                         <Text style={[commonStyles.required, { textAlign: "center" }]}>{error}</Text>
@@ -416,15 +414,15 @@ export default function Createchapters() {
                         onPress={createChapter}
                         disabled={loading}
                     >
-                        <Text>Save chapter</Text>
+                        <Text>{t("createchapters.saveBtn")}</Text>
                     </TouchableOpacity>
-
+ 
                     <TouchableOpacity
                         style={[commonStyles.iconBox, commonStyles.formButton, { marginTop: 20 }]}
                         onPress={() => router.push("/")}
                         disabled={loading}
                     >
-                        <Text>Go back to menu</Text>
+                        <Text>{t("createchapters.backBtn")}</Text>
                     </TouchableOpacity>
                     <View style={commonStyles.footer} />
                 </ScrollView>
@@ -432,3 +430,32 @@ export default function Createchapters() {
         </View>
     );
 }
+
+const getStyles = (colors: ThemeColors) => StyleSheet.create({
+    chapterFields: {
+        width: '100%',
+        gap: 14,
+        marginTop: 10,
+    },
+    chapterField: {
+        width: '100%',
+    },
+    imageUploadSection: {
+        width: '100%',
+        alignItems: 'center',
+        marginTop: 20,
+        gap: 8,
+    },
+    uploadBox: {
+        width: '100%',
+        maxWidth: 220,
+        minHeight: 140,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 16,
+        backgroundColor: colors.cardItem,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        padding: 16,
+    },
+});

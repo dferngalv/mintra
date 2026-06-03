@@ -1,25 +1,31 @@
-﻿import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { commonStyles } from "../../components/styles/commonStyles";
-import * as SecureStore from 'expo-secure-store';
 import { useContextUser } from "@/contexts/ThemeProvider";
+import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useCommonStyles } from "@/hooks/useCommonStyles";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 export default function Login() {
 
-  const { userData, setUserData } = useContextUser();
+  const { userData, setUserData, apiDir } = useContextUser();
+  const { t } = useTranslation();
 
   const pathname = usePathname();
+
+  const commonStyles = useCommonStyles();
+  const colors = useThemeColors();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -32,7 +38,7 @@ export default function Login() {
     password: ""
   });
 
-  const API_URL = "http://192.168.1.45:8083";
+  const API_URL = apiDir ?? "http://192.168.1.45:8083";
 
   useEffect(() => {
 
@@ -76,21 +82,21 @@ export default function Login() {
         setFormData({ email: email, password: password });
       }
 
-      console.log(formData);
+      console.log({ email, password });
 
       if (email === "") {
-        newErrors.email = "No se ha insertado ningún carácter en el email";
+        newErrors.email = t("login.validation.emptyEmail");
         exit = true;
       } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-        newErrors.email = "El email insertado no es válido";
+        newErrors.email = t("login.validation.invalidEmail");
         exit = true;
       }
 
       if (password === "") {
-        newErrors.password = "No se ha insertado ningún carácter en la contraseña";
+        newErrors.password = t("login.validation.emptyPassword");
         exit = true;
       } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]).{8,}$/.test(password) || /\s/.test(password)) {
-        newErrors.password = "La contraseña insertada no es válida; debe contener al menos 8 caracteres, una mayúscula, una minúscula y un carácter especial. No debe tener espacios.";
+        newErrors.password = t("login.validation.invalidPassword");
         exit = true;
       }
 
@@ -98,75 +104,64 @@ export default function Login() {
       console.log(newErrors);
 
       if (!exit) {
-        await prelogin();
+        await prelogin({ email, password });
       }
 
     } catch (e) {
-      setErrors({ email: "Error de registro", password: "" });
+      setErrors({ email: t("login.validation.generalError"), password: "" });
     } finally {
 
     }
   };
 
-  const prelogin = async () => {
-
-    login();
+  const prelogin = async (data: { email: string; password: string }) => {
+    return login(data);
   }
 
-  const login = () => {
+  const login = async (data: { email: string; password: string }) => {
+    try {
+      const response = await fetch(`${API_URL}/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.toLowerCase().trim(),
+          upassword: formData.password,
+        })
+      });
 
+      const text = await response.text();
+      console.log("login response:", response.status, text);
 
-    fetch(`${API_URL}/user/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: formData.email.toLowerCase().trim(),
-        upassword: formData.password,
-      })
-    })
-      .then(async (response) => {
-
-        const text = await response.text();
-
-        console.log(text);
-
-        let dataResult = null;
-
+      let dataResult = null;
+      if (text) {
         try {
-          dataResult = text ? JSON.parse(text) : null;
-        } catch (e) {
-          // No era JSON
-          dataResult = null;
+          dataResult = JSON.parse(text);
+        } catch (error) {
+          dataResult = text;
         }
-
-        if (!response.ok) {
-
-          const message =
-            text ||
-            `Error al iniciar sesión ${response.status}`;
-
-          throw new Error(message);
-        }
-
-        return dataResult;
-      })
-      .then((data) => {
-
-        if (data !== null) {
-          console.log("Login correcto. userId:", data.userId);
-
-          guardarDatos(String(data.userId));
-        }
-      })
-      .catch((error) => {
-
-        let newError = { email: "Error al registrarse, quizás el usuario no existe.", password: "" };
-        setErrors(newError);
-        console.error(error);
       }
-      );
+
+      if (!response.ok) {
+        const message =
+          typeof dataResult === 'string'
+            ? dataResult
+            : text || `${t("login.validation.generalLoginError")} ${response.status}`;
+        throw new Error(message);
+      }
+
+      if (dataResult && typeof dataResult === 'object' && 'userId' in dataResult) {
+        console.log("Login correcto. userId:", (dataResult as any).userId);
+        guardarDatos(String((dataResult as any).userId));
+      } else {
+        throw new Error(t('login.validation.loginError'));
+      }
+    } catch (error: any) {
+      const message = error?.message || t('login.validation.generalLoginError');
+      setErrors((prev) => ({ ...prev, email: message }));
+      throw error;
+    }
   };
 
   const guardarDatos = async (userId: (string)) => {
@@ -208,17 +203,17 @@ export default function Login() {
           </View>
 
           {/* Login Title */}
-          <Text style={commonStyles.title}>Login</Text>
+          <Text style={commonStyles.title}>{t('login.title')}</Text>
 
           {/* Email Input */}
           <View style={commonStyles.inputGroup}>
             <Text style={commonStyles.label}>
-              E-Mail <Text style={commonStyles.required}>*</Text>
+              {t('login.email')} <Text style={commonStyles.required}>*</Text>
             </Text>
             <TextInput
               style={commonStyles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#ccc"
+              placeholder={t('login.emailPlaceholder')}
+              placeholderTextColor={colors.placeholder}
               value={formData.email}
               onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
               keyboardType="email-address"
@@ -234,13 +229,13 @@ export default function Login() {
           {/* Password Input */}
           <View style={commonStyles.inputGroup}>
             <Text style={commonStyles.label}>
-              Password <Text style={commonStyles.required}>*</Text>
+              {t('login.password')} <Text style={commonStyles.required}>*</Text>
             </Text>
             <View style={commonStyles.passwordInputContainer}>
               <TextInput
                 style={commonStyles.passwordInput}
-                placeholder="Enter your password"
-                placeholderTextColor="#ccc"
+                placeholder={t('login.passwordPlaceholder')}
+                placeholderTextColor={colors.placeholder}
                 value={formData.password}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
                 secureTextEntry={!showPassword}
@@ -253,7 +248,7 @@ export default function Login() {
                 <Ionicons
                   name={showPassword ? "eye" : "eye-off"}
                   size={20}
-                  color="#666"
+                  color={colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -266,24 +261,24 @@ export default function Login() {
 
           {/* Forgot Password Link */}
           <TouchableOpacity style={commonStyles.linkContainer}>
-            <Text style={commonStyles.link}>Forgot password?</Text>
+            <Text style={commonStyles.link}>{t('login.forgotPassword')}</Text>
           </TouchableOpacity>
 
           {/* Sign In Button */}
           <TouchableOpacity
-            style={[commonStyles.button, disable ? { backgroundColor: "#c9c9c9" } : { backgroundColor: "#000" }]}
+            style={[commonStyles.button, disable ? { backgroundColor: colors.placeholder } : { backgroundColor: colors.text }]}
             onPress={handleLogin}
             activeOpacity={0.7}
             disabled={disable}
           >
-            <Text style={commonStyles.buttonText}>Sign in with password</Text>
+            <Text style={[commonStyles.buttonText, { color: colors.background }]}>{t('login.signInBtn')}</Text>
           </TouchableOpacity>
 
           {/* Sign Up Link */}
           <View style={commonStyles.textLinkContainer}>
-            <Text style={commonStyles.textLinkText}>Don&apos;t have an account? </Text>
+            <Text style={commonStyles.textLinkText}>{t('login.noAccount')}</Text>
             <TouchableOpacity>
-              <Text style={commonStyles.textLinkLink}>Sign up</Text>
+              <Text style={commonStyles.textLinkLink}>{t('login.signUp')}</Text>
             </TouchableOpacity>
           </View>
           <View style={commonStyles.footer}/>
